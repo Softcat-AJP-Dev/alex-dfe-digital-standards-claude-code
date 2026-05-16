@@ -1,0 +1,22 @@
+name: ci
+
+# Provisioned skeleton — extend with the build/test commands appropriate
+# to your stack. The base path for this app is `/alex/dfe-digital-standards-claude-code`.
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  hello:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Confirm checkout
+        run: |
+          echo "Project: DfE Digital Standards - Claude Code"
+          echo "URL path: /alex/dfe-digital-standards-claude-code"
+          ls -la
