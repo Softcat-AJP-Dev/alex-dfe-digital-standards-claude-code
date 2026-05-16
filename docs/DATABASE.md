@@ -6,15 +6,15 @@ this project. This file is the long-form integration guide that you
 
 ## Connection at a glance
 
-- **Server:** `(unknown)`
-- **Database:** `(unknown)`
+- **Server:** `pg-dfe-digital-standards-claude-code-nrc47kbqicsvu.postgres.database.azure.com`
+- **Database:** `app`
 - **Auth:** Microsoft Entra ID only — no passwords on the server.
 
 ## Full connection guidance
 
 - **Type:** PostgreSQL Flexible Server (B1ms burstable — ~£11/month)
-- **Server FQDN:** `(unknown)`
-- **Database name:** `(unknown)`
+- **Server FQDN:** `pg-dfe-digital-standards-claude-code-nrc47kbqicsvu.postgres.database.azure.com`
+- **Database name:** `app`
 - **Auth:** Microsoft Entra ID **only** — password auth is disabled at the server level.
 - **Admin:** `alex@explainitlabs.com` (you). Run `az login` then connect with any tool that supports AAD: `psql` (`PGPASSWORD=$(az account get-access-token --resource-type oss-rdbms --query accessToken -o tsv) psql 'host=<fqdn> dbname=<db> user=alex@explainitlabs.com sslmode=require'`), the Node `pg` driver with a token via `@azure/identity`, etc.
 - **No password to store.** No `.env` secret. To grant your hosted app access, run `SELECT * FROM pgaadauth_create_principal('<app-mi-name>', false, false);` in the database as you, then `GRANT ALL ON SCHEMA app TO "<app-mi-name>";`.
@@ -22,7 +22,7 @@ this project. This file is the long-form integration guide that you
 **Connection string shape** (when a tool insists on a URL):
 
 ```
-postgresql://<user>:<aad-token>@(unknown):5432/(unknown)?sslmode=require
+postgresql://<user>:<aad-token>@pg-dfe-digital-standards-claude-code-nrc47kbqicsvu.postgres.database.azure.com:5432/app?sslmode=require
 ```
 
 - `<user>` — your AAD principal (`alex@explainitlabs.com`) when running locally,
