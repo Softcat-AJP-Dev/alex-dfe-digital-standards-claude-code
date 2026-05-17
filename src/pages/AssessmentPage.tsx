@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   api,
   type Assessment,
-  type Response,
+  type AssessmentResponse,
   type StandardWithSubs,
   type SubCriterionWithDescriptors,
 } from "../api";
@@ -12,7 +12,7 @@ export function AssessmentPage() {
   const { id } = useParams<{ id: string }>();
   const nav = useNavigate();
   const [assessment, setAssessment] = useState<Assessment | null>(null);
-  const [responses, setResponses] = useState<Response[]>([]);
+  const [responses, setAssessmentResponses] = useState<AssessmentResponse[]>([]);
   const [standards, setStandards] = useState<StandardWithSubs[]>([]);
   const [activeStandard, setActiveStandard] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -23,7 +23,7 @@ export function AssessmentPage() {
     Promise.all([api.getAssessment(id), api.getStandards()])
       .then(([a, s]) => {
         setAssessment(a.assessment);
-        setResponses(a.responses);
+        setAssessmentResponses(a.responses);
         setStandards(s.standards);
         if (s.standards.length > 0) setActiveStandard(s.standards[0].id);
       })
@@ -31,7 +31,7 @@ export function AssessmentPage() {
   }, [id]);
 
   const responseBySub = useMemo(() => {
-    const m = new Map<string, Response>();
+    const m = new Map<string, AssessmentResponse>();
     for (const r of responses) m.set(r.sub_criterion_id, r);
     return m;
   }, [responses]);
@@ -144,7 +144,7 @@ export function AssessmentPage() {
                 response={responseBySub.get(sc.id)}
                 readOnly={assessment.status === "Completed"}
                 onChange={(r) => {
-                  setResponses((prev) => {
+                  setAssessmentResponses((prev) => {
                     const filtered = prev.filter((p) => p.sub_criterion_id !== sc.id);
                     return [...filtered, r];
                   });
@@ -167,9 +167,9 @@ function SubCriterionRow({
 }: {
   assessmentId: string;
   sub: SubCriterionWithDescriptors;
-  response?: Response;
+  response?: AssessmentResponse;
   readOnly: boolean;
-  onChange: (r: Response) => void;
+  onChange: (r: AssessmentResponse) => void;
 }) {
   const [rationale, setRationale] = useState(response?.rationale ?? "");
   const [evidenceLabel, setEvidenceLabel] = useState("");

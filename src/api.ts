@@ -50,7 +50,7 @@ export const api = {
 
   getAssessment: (id: string) =>
     fetch(`${API_BASE}/assessments/${id}`).then(
-      jsonOrThrow<{ assessment: Assessment; responses: Response[] }>,
+      jsonOrThrow<{ assessment: Assessment; responses: AssessmentResponse[] }>,
     ),
 
   putResponse: (
@@ -142,7 +142,7 @@ export type Evidence = {
   createdAt: string;
 };
 
-export type Response = {
+export type AssessmentResponse = {
   id: string;
   sub_criterion_id: string;
   level: number | null;
