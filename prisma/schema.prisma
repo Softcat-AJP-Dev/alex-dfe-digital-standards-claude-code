@@ -1,0 +1,203 @@
+// Prisma schema for the DfE Digital Standards Maturity Model.
+//
+// Migrations are managed by Prisma; the AI Provisioning Platform's
+// publish pipeline runs `prisma migrate deploy` automatically. At
+// runtime the API uses the raw `pg` driver (Prisma Client is heavier
+// than the single-process bundled runtime can comfortably carry).
+//
+// All tables live in the `app` schema, which the platform also uses for
+// `app.members` (managed by the platform, not by this schema).
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["multiSchema"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  schemas  = ["app"]
+}
+
+// ----- Reference data (seeded from gov.uk; versioned) -------------------
+
+model StandardsVersion {
+  id          String       @id @default(dbgenerated("gen_random_uuid()::text"))
+  version     String       @unique
+  publishedAt DateTime     @map("published_at")
+  sourceNotes String?      @map("source_notes")
+  standards   Standard[]
+  assessments Assessment[]
+
+  @@map("standards_version")
+  @@schema("app")
+}
+
+enum StandardCategory {
+  Core
+  Additional
+
+  @@map("standard_category")
+  @@schema("app")
+}
+
+model Standard {
+  id          String           @id @default(dbgenerated("gen_random_uuid()::text"))
+  versionId   String           @map("version_id")
+  version     StandardsVersion @relation(fields: [versionId], references: [id], onDelete: Cascade)
+  slug        String
+  title       String
+  category    StandardCategory
+  summary     String
+  govUkUrl    String           @map("gov_uk_url")
+  weight      Float            @default(1.0)
+  orderIndex  Int              @map("order_index")
+  subCriteria SubCriterion[]
+
+  @@unique([versionId, slug])
+  @@map("standard")
+  @@schema("app")
+}
+
+model SubCriterion {
+  id          String            @id @default(dbgenerated("gen_random_uuid()::text"))
+  standardId  String            @map("standard_id")
+  standard    Standard          @relation(fields: [standardId], references: [id], onDelete: Cascade)
+  code        String
+  text        String
+  rationale   String?
+  mustHave    Boolean           @default(false) @map("must_have")
+  weight      Float             @default(1.0)
+  orderIndex  Int               @map("order_index")
+  descriptors LevelDescriptor[]
+  responses   Response[]
+
+  @@unique([standardId, code])
+  @@map("sub_criterion")
+  @@schema("app")
+}
+
+model LevelDescriptor {
+  id             String       @id @default(dbgenerated("gen_random_uuid()::text"))
+  subCriterionId String       @map("sub_criterion_id")
+  subCriterion   SubCriterion @relation(fields: [subCriterionId], references: [id], onDelete: Cascade)
+  level          Int
+  descriptor     String
+  evidenceHints  String?      @map("evidence_hints")
+
+  @@unique([subCriterionId, level])
+  @@map("level_descriptor")
+  @@schema("app")
+}
+
+// ----- Customer & assessment data ---------------------------------------
+
+enum SchoolPhase {
+  Primary
+  Secondary
+  AllThrough
+  FE
+  SpecialSEND
+
+  @@map("school_phase")
+  @@schema("app")
+}
+
+model Customer {
+  id          String       @id @default(dbgenerated("gen_random_uuid()::text"))
+  name        String
+  urn         String?
+  phase       SchoolPhase
+  trustName   String?      @map("trust_name")
+  ownerOid    String       @map("owner_oid")
+  ownerEmail  String       @map("owner_email")
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+  assessments Assessment[]
+
+  @@index([ownerOid])
+  @@map("customer")
+  @@schema("app")
+}
+
+enum AssessmentStatus {
+  InProgress
+  Completed
+  Archived
+
+  @@map("assessment_status")
+  @@schema("app")
+}
+
+model Assessment {
+  id            String           @id @default(dbgenerated("gen_random_uuid()::text"))
+  customerId    String           @map("customer_id")
+  customer      Customer         @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  versionId     String           @map("version_id")
+  version       StandardsVersion @relation(fields: [versionId], references: [id])
+  title         String
+  status        AssessmentStatus @default(InProgress)
+  assessorOid   String           @map("assessor_oid")
+  assessorEmail String           @map("assessor_email")
+  startedAt     DateTime         @default(now()) @map("started_at")
+  completedAt   DateTime?        @map("completed_at")
+  notes         String?
+  responses     Response[]
+  reports       Report[]
+
+  @@index([customerId])
+  @@map("assessment")
+  @@schema("app")
+}
+
+model Response {
+  id             String       @id @default(dbgenerated("gen_random_uuid()::text"))
+  assessmentId   String       @map("assessment_id")
+  assessment     Assessment   @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  subCriterionId String       @map("sub_criterion_id")
+  subCriterion   SubCriterion @relation(fields: [subCriterionId], references: [id])
+  level          Int?
+  notApplicable  Boolean      @default(false) @map("not_applicable")
+  rationale      String?
+  updatedAt      DateTime     @updatedAt @map("updated_at")
+  evidence       Evidence[]
+
+  @@unique([assessmentId, subCriterionId])
+  @@map("response")
+  @@schema("app")
+}
+
+enum EvidenceKind {
+  Note
+  Link
+  InlineFile
+
+  @@map("evidence_kind")
+  @@schema("app")
+}
+
+model Evidence {
+  id         String       @id @default(dbgenerated("gen_random_uuid()::text"))
+  responseId String       @map("response_id")
+  response   Response     @relation(fields: [responseId], references: [id], onDelete: Cascade)
+  kind       EvidenceKind
+  label      String
+  body       String
+  createdAt  DateTime     @default(now()) @map("created_at")
+
+  @@map("evidence")
+  @@schema("app")
+}
+
+model Report {
+  id             String     @id @default(dbgenerated("gen_random_uuid()::text"))
+  assessmentId   String     @map("assessment_id")
+  assessment     Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  generatedAt    DateTime   @default(now()) @map("generated_at")
+  generatedByOid String     @map("generated_by_oid")
+  snapshot       Json
+  overallScore   Float      @map("overall_score")
+
+  @@map("report")
+  @@schema("app")
+}
