@@ -29,13 +29,8 @@ app.route("/customers", customersRoutes);
 app.route("/assessments", assessmentsRoutes);
 app.route("/standards", standardsRoutes);
 app.route("/reports", reportsRoutes);
-// Local-dev: lift Hono with @hono/node-server so you can hit it on :8787.
-// At publish, the platform's bundler bypasses this and serves the export.
-if (process.env.LOCAL_DEV === "1") {
-    // Lazy import so the prod bundle doesn't carry the node-server dep.
-    const { serve } = await import("@hono/node-server");
-    serve({ fetch: app.fetch, port: 8787 });
-    // eslint-disable-next-line no-console
-    console.log("[api] local dev server listening on :8787");
-}
+// IMPORTANT: nothing async at module top level. The platform bundles this
+// file with esbuild --format=cjs; top-level await blocks the sandbox's
+// synchronous require() and the runtime reports api_runtime_unavailable.
+// Local-dev server bootstrap lives in api/local-dev.ts.
 export default app;

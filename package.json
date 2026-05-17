@@ -11,7 +11,7 @@
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:seed": "tsx prisma/seed.ts",
-    "api:dev": "LOCAL_DEV=1 tsx watch api/index.ts"
+    "api:dev": "tsx watch api/local-dev.ts"
   },
   "dependencies": {
     "@azure/identity": "^4.4.1",
