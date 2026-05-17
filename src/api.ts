@@ -4,12 +4,17 @@ const API_BASE = "/alex/dfe-digital-standards-claude-code/api";
 
 async function jsonOrThrow<T>(res: Response): Promise<T> {
   if (!res.ok) {
-    let detail: string;
+    // Read the body once as text, then try to parse — calling .json()
+    // first and falling back to .text() consumes the stream and the
+    // fallback throws "body stream already read", which masks whatever
+    // the server actually returned.
+    const raw = await res.text();
+    let detail = raw;
     try {
-      const j = await res.json();
-      detail = JSON.stringify(j);
+      detail = JSON.stringify(JSON.parse(raw));
     } catch {
-      detail = await res.text();
+      // Body wasn't JSON — show the raw text (or "<empty>") as-is.
+      detail = raw || "<empty body>";
     }
     throw new Error(`HTTP ${res.status}: ${detail}`);
   }
