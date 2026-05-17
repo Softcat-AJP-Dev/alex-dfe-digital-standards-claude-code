@@ -1,20 +1,25 @@
 import { Pool, type PoolClient } from "pg";
 import { DefaultAzureCredential } from "@azure/identity";
 
-const credential = new DefaultAzureCredential();
 const SCOPE = "https://ossrdbms-aad.database.windows.net/.default";
 
-// Cache the token. AAD tokens are valid for ~1h; @azure/identity caches and
-// refreshes for us, but we keep a wrapper here to avoid awaiting on every
-// query when the pool is fetching new connections.
+// Lazy-initialise the credential chain. The platform docs' example creates
+// DefaultAzureCredential inside the request handler; we do the same so the
+// sandbox can finish loading the module before any Azure SDK probing.
+let credential: DefaultAzureCredential | null = null;
 let cachedToken: { token: string; expiresOnTimestamp: number } | null = null;
+
+function getCredential(): DefaultAzureCredential {
+  if (!credential) credential = new DefaultAzureCredential();
+  return credential;
+}
 
 async function getToken(): Promise<string> {
   const now = Date.now();
   if (cachedToken && cachedToken.expiresOnTimestamp - now > 60_000) {
     return cachedToken.token;
   }
-  const tok = await credential.getToken(SCOPE);
+  const tok = await getCredential().getToken(SCOPE);
   if (!tok) throw new Error("Failed to acquire AAD token for Postgres");
   cachedToken = tok;
   return tok.token;

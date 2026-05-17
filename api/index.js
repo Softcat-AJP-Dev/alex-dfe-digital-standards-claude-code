@@ -6,6 +6,23 @@ import { reportsRoutes } from "./routes/reports";
 import { readAipUser } from "./auth";
 import { query } from "./db";
 const app = new Hono();
+// Surface unhandled errors with their real message instead of Hono's
+// default plain "Internal Server Error" text. Otherwise debugging across
+// the sub-path edge is guesswork.
+app.onError((err, c) => {
+    // eslint-disable-next-line no-console
+    console.error("[api onError]", c.req.method, c.req.path, err);
+    return c.json({
+        error: "internal_error",
+        message: err instanceof Error ? err.message : String(err),
+        route: `${c.req.method} ${c.req.path}`,
+    }, 500);
+});
+// Version — embedded at build time so a fresh `curl /api/version` confirms
+// the published bundle matches the source. Doesn't touch the DB or
+// identity — safest possible smoke test.
+const BUILD_ID = "2026-05-17-onerror";
+app.get("/version", (c) => c.json({ buildId: BUILD_ID, ok: true }));
 // Health — also handy for confirming AAD-to-Postgres works end-to-end.
 app.get("/health", async (c) => {
     try {
