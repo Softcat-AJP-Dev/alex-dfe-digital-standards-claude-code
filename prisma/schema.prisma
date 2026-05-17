@@ -112,7 +112,7 @@ model Customer {
   ownerOid    String       @map("owner_oid")
   ownerEmail  String       @map("owner_email")
   createdAt   DateTime     @default(now()) @map("created_at")
-  updatedAt   DateTime     @updatedAt @map("updated_at")
+  updatedAt   DateTime     @default(now()) @updatedAt @map("updated_at")
   assessments Assessment[]
 
   @@index([ownerOid])
@@ -159,7 +159,7 @@ model Response {
   level          Int?
   notApplicable  Boolean      @default(false) @map("not_applicable")
   rationale      String?
-  updatedAt      DateTime     @updatedAt @map("updated_at")
+  updatedAt      DateTime     @default(now()) @updatedAt @map("updated_at")
   evidence       Evidence[]
 
   @@unique([assessmentId, subCriterionId])
